@@ -100,7 +100,13 @@ It doesn't blink. It doesn't lose focus. It just watches.
 ```
 
 ---
+-------------------
 
+Prerequisites!!!!!!!
+#pip install ultralytics roboflow
+
+
+----------------
 ## 📁 Project Structure
 
 ```
@@ -134,35 +140,35 @@ proactive-safety-assessment/
 ```
 WEEK  MILESTONE                              MODULE        STATUS
 ───────────────────────────────────────────────────────────────────
-Wk 1  Project setup & dataset collection    Foundation    ✅ Done
+day1  Project setup & dataset collection    Foundation    ✅ Done
       ↳ Environment, camera wiring,
         500 labeled training images
 
-Wk 2  YOLOv8 model training & validation    Detection     ✅ Done
+  YOLOv8 model training & validation    Detection     ✅ Done
       ↳ Fine-tune, mAP evaluation,
         hyperparameter iteration
 
-Wk 3  Real-time inference + bounding boxes  Detection     ⟳ Active
+ Real-time inference + bounding boxes  Detection     ⟳ Active
       ↳ Live stream → box overlay → labels
 
-Wk 3  Alert engine build                    Alerts        ⟳ Active
+ Alert engine build                    Alerts        ⟳ Active
       ↳ Rolling-window logic, SMS tests,
         threshold configuration
 
-Wk 4  Dashboard MVP                         Dashboard     ○ Upcoming
+day2  Dashboard MVP                         Dashboard     ○ Upcoming
       ↳ Live safety score, violation log,
         real-time compliance chart
 
-Wk 5  System integration & stress testing   Integration   ○ Upcoming
+day2  System integration & stress testing   Integration   ○ Upcoming
       ↳ All layers end-to-end, latency
         benchmarks, edge case handling
 
-Wk 6  Demo prep & submission polish         MVP           ○ Upcoming
+day3  Demo prep & submission polish         MVP           ○ Upcoming
       ↳ Demo video, README final,
         live presentation walkthrough
 ───────────────────────────────────────────────────────────────────
 
-PROGRESS  [██████████░░░░░░░░░░░░░░]  Weeks 1–2 complete
+PROGRESS  [██████████░░░░░░░░░░░░░░]  3day to complete
 ```
 
 ---
@@ -263,9 +269,6 @@ Questions, feedback, or collaboration? Open an issue or reach out directly.
 
 ---
 
-## 📄 License
-
-MIT License — see `LICENSE` for details.
 
 ---
 
