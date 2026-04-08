@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AJAI-Server")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+509c80853f25f296cabe3fb8ca42d5ecb5f658c6")]
 [assembly: System.Reflection.AssemblyProductAttribute("AJAI-Server")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AJAI-Server")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

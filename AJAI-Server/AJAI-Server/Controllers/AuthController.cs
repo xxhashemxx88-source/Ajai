@@ -64,9 +64,6 @@ namespace AJAI_Server.Controllers
 
             return BadRequest("Information error");
         }
-
-        // ----------------------------------------------------
-        // دالة توليد التوكن (محدثة لاستقبال مدة الانتهاء بالساعات)
         private string CreateToken(string email, int expireHours)
         {
             List<Claim> claims = new List<Claim>
@@ -79,28 +76,7 @@ namespace AJAI_Server.Controllers
 
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddHours(expireHours), // استخدام المتغير الجديد هنا
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        // ----------------------------------------------------
-        // دالة مساعدة لتوليد الـ JWT
-        private string CreateToken(string email)
-        {
-            List<Claim> claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, email)
-            };
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
-
-            var token = new JwtSecurityToken(
-                claims: claims,
-                expires: DateTime.Now.AddHours(8),
+                expires: DateTime.Now.AddHours(expireHours),
                 signingCredentials: creds
             );
 

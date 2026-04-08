@@ -27,6 +27,32 @@
   },
   {
     "ContainingType": "AJAI_Server.Controllers.AlertsController",
+    "Method": "DeleteAllAlerts",
+    "RelativePath": "api/Alerts",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AJAI_Server.Controllers.AlertsController",
+    "Method": "DeleteAlert",
+    "RelativePath": "api/Alerts/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AJAI_Server.Controllers.AlertsController",
     "Method": "UpdateLiveFrame",
     "RelativePath": "api/Alerts/stream",
     "HttpMethod": "POST",

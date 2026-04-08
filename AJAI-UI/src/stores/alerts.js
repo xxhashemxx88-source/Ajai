@@ -2,12 +2,13 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '../services/api'
 
-export const useAlertsStore = defineStore('alerts', () => {
-  const alerts = ref([])
-  const newCount = ref(0)
-  const loading = ref(false)
+const MAX_ALERTS      = 50
+const KEEP_IMAGES_FOR = 20
 
-  // Buffer وحدة لكل كاميرا (email → base64)
+export const useAlertsStore = defineStore('alerts', () => {
+  const alerts     = ref([])
+  const newCount   = ref(0)
+  const loading    = ref(false)
   const liveFrames = ref({})
 
   async function fetchAlerts() {
@@ -20,31 +21,66 @@ export const useAlertsStore = defineStore('alerts', () => {
     }
   }
 
-  // يُستدعى من SignalR - فريم حي (يُستبدل دائماً)
   function updateLiveFrame(cameraEmail, base64Image) {
     liveFrames.value[cameraEmail] = base64Image
   }
 
-  // يُستدعى من SignalR - تهديد حقيقي (يُضاف للقائمة)
   function addAlert(alert) {
-    const newAlert = { ...alert, isNew: true }
-    alerts.value.unshift(newAlert)
+    alerts.value.unshift({ ...alert, isNew: true })
     newCount.value++
+
+    if (alerts.value.length > MAX_ALERTS) {
+      alerts.value = alerts.value.slice(0, MAX_ALERTS)
+    }
+
+    alerts.value.forEach((a, index) => {
+      if (index >= KEEP_IMAGES_FOR && a.base64Image) {
+        a.base64Image = ''
+      }
+    })
+
     setTimeout(() => {
       const found = alerts.value.find(a => a.id === alert.id)
       if (found) found.isNew = false
     }, 4000)
   }
 
-  // الكاميرا ترسل فريم حي للسيرفر
   async function sendLiveFrame(cameraEmail, base64Image) {
-    await api.post('/alerts/stream', { cameraEmail, alertType: 'LIVE_FRAME', base64Image })
+    await api.post('/alerts/stream', {
+      cameraEmail,
+      alertType:   'LIVE_FRAME',
+      base64Image
+    })
   }
 
-  // الـ AI يرسل تهديد للسيرفر (يُحفظ في DB)
   async function sendAlert(cameraEmail, alertType, base64Image) {
     const res = await api.post('/alerts', { cameraEmail, alertType, base64Image })
     return res.data
+  }
+
+  // ══════════════════════════════════════════
+  // حذف تنبيه واحد من DB والذاكرة
+  // ══════════════════════════════════════════
+  async function deleteAlert(id) {
+    try {
+      await api.delete(`/alerts/${id}`)
+      alerts.value = alerts.value.filter(a => a.id !== id)
+    } catch (e) {
+      console.error('[Alerts] Delete failed:', e)
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // حذف كل التنبيهات من DB والذاكرة
+  // ══════════════════════════════════════════
+  async function deleteAllAlerts() {
+    try {
+      await api.delete('/alerts')
+      alerts.value  = []
+      newCount.value = 0
+    } catch (e) {
+      console.error('[Alerts] Delete all failed:', e)
+    }
   }
 
   function clearNewCount() {
@@ -54,6 +90,8 @@ export const useAlertsStore = defineStore('alerts', () => {
   return {
     alerts, newCount, loading, liveFrames,
     fetchAlerts, updateLiveFrame, addAlert,
-    sendLiveFrame, sendAlert, clearNewCount
+    sendLiveFrame, sendAlert,
+    deleteAlert, deleteAllAlerts,
+    clearNewCount
   }
 })
