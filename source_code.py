@@ -1,63 +1,91 @@
 import cv2
+import numpy as np
+import base64
+from flask import Flask, request, jsonify
 from ultralytics import YOLO
 
-model = YOLO("best.pt")
+app = Flask(__name__)
 
-cap = cv2.VideoCapture(0)
+#  NCNN 
+MODEL_PATH = "yolo11_ncnn_model"
+model = YOLO(MODEL_PATH, task="detect")
+model.overrides["verbose"] = False
 
-CONFIDENCE_THRESHOLD = 0.60
-REQUIRED_FRAMES = 5
+CONFIDENCE_THRESHOLD = 0.70
+DANGER_KEYWORDS = ["no", "without", "bare", "head", "missing"]
 
-track_history = {}           
+@app.route('/analyze', methods=['POST'])
+def analyze_frame():
+    try:
+        # 1  
+        data = request.get_json()
+        if not data or 'base64Image' not in data:
+            return jsonify({"error": "Missing base64Image"}), 400
 
-DANGER_KEYWORDS = ["no", "without", "bare", "head"]
-
-
-while cap.isOpened():
-    success, frame = cap.read()
-    if not success:
-        break
-
-    results = model.track(frame, persist=True, conf=CONFIDENCE_THRESHOLD, verbose=False)
-
-    if results[0].boxes is not None and results[0].boxes.id is not None:
+        base64_str = data['base64Image']
         
-        boxes = results[0].boxes.xyxy.cpu().tolist()
-        track_ids = results[0].boxes.id.int().cpu().tolist()
-        confs = results[0].boxes.conf.cpu().tolist()
-        class_ids = results[0].boxes.cls.int().cpu().tolist()
+        if "," in base64_str:
+            base64_str = base64_str.split(",")[1]
 
-        for box, track_id, conf, cls_id in zip(boxes, track_ids, confs, class_ids):
-            x1, y1, x2, y2 = map(int, box)
-            
-            class_name = model.names[cls_id].lower()
-            
-            track_history[track_id] = track_history.get(track_id, 0) + 1
+        img_data = base64.b64decode(base64_str)
+        np_arr = np.frombuffer(img_data, np.uint8)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-            if track_history[track_id] >= REQUIRED_FRAMES:
-                
-                is_unsafe = any(keyword in class_name for keyword in DANGER_KEYWORDS)
+        if frame is None:
+            return jsonify({"error": "Invalid image format"}), 400
 
-                if is_unsafe:
-                    color = (0, 0, 255)
-                    status = "DANGER"
+        # 3.  YOLO
+        results = model.predict(frame, conf=CONFIDENCE_THRESHOLD, verbose=False)
+        annotated_frame = frame.copy()
+        
+        is_threat = False
+        threat_names = []
+
+        if results[0].boxes is not None:
+            boxes = results[0].boxes.xyxy.cpu().tolist()
+            confs = results[0].boxes.conf.cpu().tolist()
+            class_ids = results[0].boxes.cls.int().cpu().tolist()
+
+            for box, conf, cls_id in zip(boxes, confs, class_ids):
+                x1, y1, x2, y2 = map(int, box)
+                class_name = model.names[cls_id].lower()
+
+                is_violating = any(kw in class_name for kw in DANGER_KEYWORDS)
+
+                if is_violating:
+                    is_threat = True
+                    if class_name not in threat_names:
+                        threat_names.append(class_name)
+                    color = (0, 0, 255) # أحمر للتهديد
                 else:
-                    color = (0, 255, 0)
-                    status = "SAFE"
+                    color = (0, 255, 0) # أخضر للأمان
 
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                text = f"{status}: {class_name} | {conf*100:.0f}%"
-                cv2.putText(frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-                
-            else:
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 255), 2)
-                text = f"Checking {class_name}... {track_history[track_id]}/{REQUIRED_FRAMES}"
-                cv2.putText(frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+                cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, 2)
+                label = f"{class_name} {conf:.2f}"
+                (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)
+                cv2.rectangle(annotated_frame, (x1, y1 - th - 10), (x1 + tw + 10, y1), color, -1)
+                cv2.putText(annotated_frame, label, (x1 + 5, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
-    cv2.imshow("Hack4Future - Smart PPE Tracker", frame)
+        # 4.  
+        _, buffer = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        annotated_base64 = base64.b64encode(buffer).decode('utf-8')
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+        # 5. 
+        final_threat_name = ", ".join(threat_names) if is_threat else ""
 
-cap.release()
-cv2.destroyAllWindows()
+        response_payload = {
+            "isThreat": is_threat,
+            "threatName": final_threat_name,
+            "annotatedImage": annotated_base64
+        }
+
+        return jsonify(response_payload), 200
+
+    except Exception as e:
+        print(f"Error processing frame: {e}")
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+
+    print("🚀 بدء تشغيل خادم الذكاء الاصطناعي (AI Worker)...")
+    app.run(host='0.0.0.0', port=8000, debug=False)
